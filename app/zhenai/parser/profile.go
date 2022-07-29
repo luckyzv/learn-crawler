@@ -8,14 +8,22 @@ import (
 
 var importantProfileRe = regexp.MustCompile(`class="m-btn purple"[^>]*>([^<]+)</div>`)
 var extraProfileRe = regexp.MustCompile(`class="m-btn pink"[^>]*>([^<]+)</div>`)
+var urlRe = regexp.MustCompile(`http://album.zhenai.com/u/(\d+)`)
 
-func ParseProfile(contents []byte, name string) engine.ParseResult {
+func ParseProfile(contents []byte, name string, url string) engine.ParseResult {
 	profile := model.Profile{NickName: name}
 	formatImportantProfile(contents, importantProfileRe, &profile)
 	formatExtraProfile(contents, extraProfileRe, &profile)
 
 	result := engine.ParseResult{
-		Items: []interface{}{profile},
+		Items: []engine.Item{
+			{
+				Url:     url,
+				Type:    "zhenai",
+				Id:      extractString([]byte(url), urlRe),
+				Payload: profile,
+			},
+		},
 	}
 
 	return result
@@ -39,4 +47,9 @@ func formatImportantProfile(contents []byte, re *regexp.Regexp, profile *model.P
 func formatExtraProfile(contents []byte, re *regexp.Regexp, profile *model.Profile) {
 	match := re.FindAllSubmatch(contents, -1)
 	profile.HouKou = string(match[1][1])
+}
+
+func extractString(contents []byte, re *regexp.Regexp) string {
+	match := re.FindSubmatch(contents)
+	return string(match[1])
 }
